@@ -13,8 +13,13 @@ SET(OPENSCENEGRAPH_RELEASE_CANDIDATE 1)
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
 
+include("CMakeModules/HunterGate.cmake")
+HunterGate(
+    URL "https://github.com/ruslo/hunter/archive/v0.23.74.tar.gz"
+    SHA1 "fc061118c0e94ae2dea28f07e3842ce9aeb7332e"
+)
 if(COMMAND cmake_policy)
     # Works around warnings libraries linked against that don't
     # have absolute paths (e.g. -lpthreads)
@@ -126,9 +131,13 @@ ELSE()
     SET(OSG_WINDOWING_SYSTEM "X11" CACHE STRING "Windowing system type for graphics window creation; options: X11 or None.")
 ENDIF()
 
+<<<<<<< HEAD
 IF(OSG_WINDOWING_SYSTEM STREQUAL "None")
     SET(OSG_WINDOWING_SYSTEM_NONE ON INTERNAL "No windowing system")
 ENDIF()
+=======
+PROJECT(OpenSceneGraph VERSION 3.6.3)
+>>>>>>> fe78119b7 (Add hunter support)
 
 SET(OPENSCENEGRAPH_VERSION ${OPENSCENEGRAPH_MAJOR_VERSION}.${OPENSCENEGRAPH_MINOR_VERSION}.${OPENSCENEGRAPH_PATCH_VERSION})
 
@@ -150,6 +159,14 @@ SET(OPENSCENEGRAPH_SONAMES TRUE)
 SET(OPENTHREADS_SONAMES TRUE)
 
 SET(OpenThreads_SOURCE_DIR ${OpenSceneGraph_SOURCE_DIR})
+include(GNUInstallDirs)
+set(config_install_dir "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
+set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
+set(include_install_dir "include")
+set(targets_export_name "${PROJECT_NAME}Targets")
+set(namespace "${PROJECT_NAME}::")
 
 # We have some custom .cmake scripts not in the official distribution.
 # Maybe this can be used override existing behavior if needed?
@@ -755,6 +772,13 @@ mark_as_advanced(BUILD_OSG_PLUGINS)
 # 3rd Party Dependency Stuff
 OPTION(OSG_FIND_3RD_PARTY_DEPS "Enable to search for Android or Windows dependencies in ./3rdparty" ON)
 
+hunter_add_package(ZLIB)
+hunter_add_package(TIFF)
+hunter_add_package(Jpeg)
+hunter_add_package(PNG)
+hunter_add_package(freetype)
+hunter_add_package(giflib)
+
 IF(WIN32 AND NOT ANDROID AND OSG_FIND_3RD_PARTY_DEPS)
     INCLUDE(Find3rdPartyDependencies)
 ENDIF()
@@ -770,7 +794,7 @@ IF(ANDROID AND OSG_FIND_3RD_PARTY_DEPS)
     ANDROID_3RD_PARTY()
 ELSE()
 # Common to all platforms except android:
-    FIND_PACKAGE(Freetype)
+    FIND_PACKAGE(freetype)
     FIND_PACKAGE(ilmbase)
     FIND_PACKAGE(Inventor)
     FIND_PACKAGE(Jasper)
@@ -1421,3 +1445,23 @@ ADD_CUSTOM_TARGET(uninstall
 #
 include(FeatureSummary)
 feature_summary(WHAT ALL)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file("${version_config}" COMPATIBILITY SameMajorVersion)
+
+configure_package_config_file(
+    "CMakeModules/config.cmake.in"
+    "${project_config}"
+    INSTALL_DESTINATION "${config_install_dir}"
+)
+
+install(
+    FILES "${project_config}" "${version_config}"
+    DESTINATION "${config_install_dir}"
+)
+
+install(
+    EXPORT "${targets_export_name}"
+    NAMESPACE "${namespace}"
+    DESTINATION "${config_install_dir}"
+)
