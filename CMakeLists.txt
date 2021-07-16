@@ -17,8 +17,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.2 FATAL_ERROR)
 
 include("CMakeModules/HunterGate.cmake")
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.23.74.tar.gz"
-    SHA1 "fc061118c0e94ae2dea28f07e3842ce9aeb7332e"
+    URL "https://github.com/cpp-pm/hunter/archive/v0.23.312.tar.gz"
+    SHA1 "42311324f6b859983d833cffc2151d0b86b8bea4"
 )
 if(COMMAND cmake_policy)
     # Works around warnings libraries linked against that don't
@@ -50,7 +50,7 @@ IF(APPLE)
     MESSAGE(STATUS "OSG_OSX_VERSION=${OSG_OSX_VERSION}")
 ENDIF()
 
-PROJECT(OpenSceneGraph)
+PROJECT(OpenSceneGraph VERSION 3.7.0)
 
 # Set OSX architecture flags here, since they must be specified before
 # creating the actual OSG project.
@@ -131,13 +131,9 @@ ELSE()
     SET(OSG_WINDOWING_SYSTEM "X11" CACHE STRING "Windowing system type for graphics window creation; options: X11 or None.")
 ENDIF()
 
-<<<<<<< HEAD
 IF(OSG_WINDOWING_SYSTEM STREQUAL "None")
     SET(OSG_WINDOWING_SYSTEM_NONE ON INTERNAL "No windowing system")
 ENDIF()
-=======
-PROJECT(OpenSceneGraph VERSION 3.6.3)
->>>>>>> fe78119b7 (Add hunter support)
 
 SET(OPENSCENEGRAPH_VERSION ${OPENSCENEGRAPH_MAJOR_VERSION}.${OPENSCENEGRAPH_MINOR_VERSION}.${OPENSCENEGRAPH_PATCH_VERSION})
 
@@ -160,13 +156,6 @@ SET(OPENTHREADS_SONAMES TRUE)
 
 SET(OpenThreads_SOURCE_DIR ${OpenSceneGraph_SOURCE_DIR})
 include(GNUInstallDirs)
-set(config_install_dir "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
-set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
-set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
-set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
-set(include_install_dir "include")
-set(targets_export_name "${PROJECT_NAME}Targets")
-set(namespace "${PROJECT_NAME}::")
 
 # We have some custom .cmake scripts not in the official distribution.
 # Maybe this can be used override existing behavior if needed?
@@ -276,7 +265,9 @@ IF(APPLE)
         UNSET(OPENGL_gl_LIBRARY CACHE)
         UNSET(OPENGL_INCLUDE_DIR CACHE)
         IF(OSG_WINDOWING_SYSTEM STREQUAL "X11")
-          FIND_PACKAGE(X11)
+          hunter_add_package(x11)
+          find_package(x11 CONFIG REQUIRED)
+          #FIND_PACKAGE(X11)
           IF(NOT X11_FOUND)
             MESSAGE(FATAL_ERROR "OSG_WINDOWING_SYSTEM is X11, but no X11 installation was found. Please make sure X11 is properly installed.")
           ENDIF()
@@ -300,11 +291,11 @@ IF(APPLE)
     SET(OSG_COMPILE_FRAMEWORKS_INSTALL_NAME_DIR "@executable_path/../Frameworks" CACHE STRING "install name dir for compiled frameworks")
 ELSE()
     # Non-Apple: Find OpenGL
-    
+
     # Support EGL on Windows
     IF(OSG_WINDOWING_SYSTEM STREQUAL "Win32" AND (OSG_GLES2_AVAILABLE OR OSG_GLES3_AVAILABLE ) )
         FIND_PACKAGE(EGL)
-    
+
         set(OSG_USE_EGL ON)
 
         IF(OSG_GLES3_AVAILABLE)
@@ -329,7 +320,9 @@ ENDIF()
 IF(UNIX AND NOT ANDROID)
     # Not sure what this will do on Cygwin and Msys
     # Also, remember OS X X11 is a user installed option so it may not exist.
-    FIND_PACKAGE(X11)
+    hunter_add_package(x11)
+    find_package(x11)
+    #FIND_PACKAGE(X11)
     # Some Unicies need explicit linkage to the Math library or the build fails.
     FIND_LIBRARY(MATH_LIBRARY m)
 
@@ -371,7 +364,7 @@ IF(WIN32 AND NOT ANDROID)
 
     IF(MSVC)
         # This option is to enable the /MP switch for Visual Studio 2005 and above compilers
-        OPTION(WIN32_USE_MP "Set to ON to build OpenSceneGraph with the /MP option (Visual Studio 2005 and above)." OFF)
+        OPTION(WIN32_USE_MP "Set to ON to build OpenSceneGraph with the /MP option (Visual Studio 2005 and above)." ON)
         MARK_AS_ADVANCED(WIN32_USE_MP)
         IF(WIN32_USE_MP)
             SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
@@ -772,12 +765,24 @@ mark_as_advanced(BUILD_OSG_PLUGINS)
 # 3rd Party Dependency Stuff
 OPTION(OSG_FIND_3RD_PARTY_DEPS "Enable to search for Android or Windows dependencies in ./3rdparty" ON)
 
+hunter_add_package(freetype)
+hunter_add_package(jasper)
+set(JASPER_LIBRARY jasper::jasper)
+hunter_add_package(OpenEXR)
+set(OPENEXR_LIBRARIES_VARS OpenEXR::OpenEXR)
+#hunter_add_package(CURL)
+hunter_add_package(SDL2)
 hunter_add_package(ZLIB)
+set(ZLIB_LIBRARIES ZLIB::zlib)
 hunter_add_package(TIFF)
+set(TIFF_LIBRARY TIFF::libtiff)
 hunter_add_package(Jpeg)
+set(JPEG_LIBRARY JPEG::jpeg)
 hunter_add_package(PNG)
+set(PNG_LIBRARY PNG::png)
 hunter_add_package(freetype)
 hunter_add_package(giflib)
+set(GIFLIB_LIBRARY giflib::giflib)
 
 IF(WIN32 AND NOT ANDROID AND OSG_FIND_3RD_PARTY_DEPS)
     INCLUDE(Find3rdPartyDependencies)
@@ -794,25 +799,25 @@ IF(ANDROID AND OSG_FIND_3RD_PARTY_DEPS)
     ANDROID_3RD_PARTY()
 ELSE()
 # Common to all platforms except android:
-    FIND_PACKAGE(freetype)
+    FIND_PACKAGE(freetype CONFIG)
     FIND_PACKAGE(ilmbase)
     FIND_PACKAGE(Inventor)
     FIND_PACKAGE(Jasper)
-    FIND_PACKAGE(OpenEXR)
+    FIND_PACKAGE(OpenEXR CONFIG)
     FIND_PACKAGE(OpenCascade)
     FIND_PACKAGE(COLLADA)
     FIND_PACKAGE(FBX)
-    FIND_PACKAGE(ZLIB)
+    FIND_PACKAGE(ZLIB CONFIG)
     FIND_PACKAGE(GDAL)
     FIND_PACKAGE(GTA)
-    FIND_PACKAGE(CURL)
+    FIND_PACKAGE(CURL CONFIG)
     FIND_PACKAGE(LibVNCServer)
     FIND_PACKAGE(DCMTK)
     FIND_PACKAGE(FFmpeg)
     FIND_PACKAGE(GStreamer COMPONENTS app pbutils)
     FIND_PACKAGE(GLIB COMPONENTS gobject)
     FIND_PACKAGE(DirectShow)
-    FIND_PACKAGE(SDL2)
+    FIND_PACKAGE(SDL2 CONFIG)
     FIND_PACKAGE(SDL)
     FIND_PACKAGE(Poppler-glib)
     FIND_PACKAGE(RSVG)
@@ -868,10 +873,10 @@ ENDIF()
 # can use Quicktime.
 IF(NOT (ANDROID AND OSG_FIND_3RD_PARTY_DEPS))
     IF(NOT APPLE)
-        FIND_PACKAGE(GIFLIB)
-        FIND_PACKAGE(JPEG)
-        FIND_PACKAGE(PNG)
-        FIND_PACKAGE(TIFF)
+        FIND_PACKAGE(giflib CONFIG)
+        FIND_PACKAGE(JPEG CONFIG)
+        FIND_PACKAGE(PNG CONFIG)
+        FIND_PACKAGE(TIFF CONFIG)
         # QuickTime is required for OS X, but optional for Windows.
         IF(WIN32)
             FIND_PACKAGE(QuickTime)
@@ -1445,23 +1450,3 @@ ADD_CUSTOM_TARGET(uninstall
 #
 include(FeatureSummary)
 feature_summary(WHAT ALL)
-
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file("${version_config}" COMPATIBILITY SameMajorVersion)
-
-configure_package_config_file(
-    "CMakeModules/config.cmake.in"
-    "${project_config}"
-    INSTALL_DESTINATION "${config_install_dir}"
-)
-
-install(
-    FILES "${project_config}" "${version_config}"
-    DESTINATION "${config_install_dir}"
-)
-
-install(
-    EXPORT "${targets_export_name}"
-    NAMESPACE "${namespace}"
-    DESTINATION "${config_install_dir}"
-)
